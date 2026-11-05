@@ -991,7 +991,18 @@ bool bulk_write(LPCVOID lpOutBuffer, DWORD nOutBufferSize) {
             return true;
         case NODE_SECURITY_PLUG:
         case NODE_NONE:
-        case NODE_16SEG:
+        //case NODE_16SEG:
+        case NODE_16SEG: {
+            // Ticker text: nine characters at the start of the payload. This is the same
+            // 64-byte layout ezusb.cpp reads (node/cmd and page bytes, then the text).
+            // It used to be dropped here, so the API and overlay ticker stayed blank.
+            IIDX_LED_TICKER_LOCK.lock();
+            if (!IIDXIO_LED_TICKER_READONLY) {
+                memcpy(IIDXIO_LED_TICKER, pkg.payload, 9);
+            }
+            IIDX_LED_TICKER_LOCK.unlock();
+            return true;
+        }
         case NODE_FPGA_V2_OR_SERIAL:
         case NODE_FPGA_V1:
         case NODE_WDT:
