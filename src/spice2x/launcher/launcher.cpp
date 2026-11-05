@@ -2051,6 +2051,24 @@ int main_implementation(int argc, char *argv[]) {
         hotkeys::enable_raw_input();
         hotkeys::enable_input();
 
+        // The normal path creates the API server near the end of main_implementation(),
+        // which this early return skips. Start it here so -api works for bm2dx.exe too.
+        if (api_enable || std::min(api_serial_port.size(), api_serial_baud.size()) > 0) {
+            API_CONTROLLER = std::make_unique<api::Controller>(api_port, api_pass, api_pretty);
+        }
+        for (size_t i = 0; i < std::min(api_serial_port.size(), api_serial_baud.size()); i++) {
+            API_CONTROLLER->listen_serial(api_serial_port[i], api_serial_baud[i]);
+        }
+        if (api_stream_enable) {
+            if (!api_enable) {
+                log_fatal("launcher", "video stream requires API port to be set (-api)");
+            } else if (api_port + 2 > 65535) {
+                log_fatal("launcher", "ignoring the video stream, API port {} leaves no room for port plus two", api_port);
+            } else {
+                API_STREAM_SERVER = std::make_unique<api::StreamServer>(static_cast<unsigned short>(api_port + 2));
+            }
+        }
+
         log_info("launcher", "injected hooks ready; returning control to bm2dx.exe");
         return 0;
     }
